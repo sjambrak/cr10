@@ -5,6 +5,7 @@ hosts:
       image: ubuntu-noble-x86_64
       mgmt_user: ubuntu
       mgmt_protocol: ssh
+      flavor: standard.small
     hidden: false
 routers:
   - name: router
