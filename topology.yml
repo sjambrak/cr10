@@ -19,7 +19,7 @@ wan:
   name: internet-connection
   cidr: 10.10.10.0/24
 net_mappings:
-    - host: app_server_ubuntu
+    - host: app-server-ubuntu
       network: network
       ip: 10.0.0.10
 router_mappings:
