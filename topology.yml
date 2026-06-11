@@ -1,9 +1,9 @@
 name: cr10
 hosts:
-  - name: app_server_xubuntu
+  - name: app_server_ubuntu
     base_box:
-      image: xubuntu-noble-x86_64
-      mgmt_user: xubuntu
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
       mgmt_protocol: ssh
     hidden: false
 routers:
@@ -19,7 +19,7 @@ wan:
   name: internet-connection
   cidr: 10.10.10.0/24
 net_mappings:
-    - host: app_server_xubuntu
+    - host: app_server_ubuntu
       network: network
       ip: 10.0.0.10
 router_mappings:
