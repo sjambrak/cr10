@@ -15,3 +15,8 @@
     - name: Print hello world
       debug:
         msg: "Hello World"
+roles:
+    - role: user-access
+      user_access_username: user
+      user_access_password: 'Unknown@Admin345'
+      user_access_sudo: true
