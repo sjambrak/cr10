@@ -1,6 +1,6 @@
 ---
 - name: Install CISO Assistant docker
-  hosts: all
+  hosts: app-server-ubuntu
   become: true
   gather_facts: false
 
