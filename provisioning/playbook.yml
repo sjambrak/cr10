@@ -245,10 +245,11 @@
       ansible.builtin.debug:
         var: ciso_compose_ps.stdout_lines
 
-    - name: Configure local user access
-      ansible.builtin.import_role:
-        name: user-access
-      vars:
-        user_access_username: "{{ user_access_username }}"
-        user_access_password: "{{ user_access_password }}"
-        user_access_sudo: "{{ user_access_sudo }}"
+#    - name: Configure local user access
+#      ansible.builtin.import_role:
+#        name: user-access
+#      vars:
+#        user_access_username: "{{ user_access_username }}"
+#        user_access_password: "{{ user_access_password }}"
+#        user_access_sudo: "{{ user_access_sudo }}"
+
