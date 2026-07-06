@@ -7,10 +7,11 @@ hosts:
       mgmt_user: ubuntu
       mgmt_protocol: ssh
     hidden: false
-  - name: xubuntu-web
+  - name: xubuntu-client
+    flavor: c1_r2_d10
     base_box:
       image: xubuntu-noble-x86_64
-      mgmt_user: xubuntu
+      mgmt_user: ubuntu
       mgmt_protocol: ssh
     hidden: false
 routers:
