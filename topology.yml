@@ -8,7 +8,6 @@ hosts:
       mgmt_protocol: ssh
     hidden: false
   - name: xubuntu-web
-    flavor: c1_r2_d10
     base_box:
       image: xubuntu-noble-x86_64
       mgmt_user: ubuntu
