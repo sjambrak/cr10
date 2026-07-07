@@ -9,12 +9,10 @@
     ciso_app_host: "{{ ansible_host | default('localhost') }}"
     ciso_bind_ip: "0.0.0.0"
     ciso_port: "8443"
-
-  roles:
-    - role: user-access
-      user_access_username: User
-      user_access_password: 'cr10@User'
-      user_access_sudo: true
+# ---create user
+    user_access_username: User
+    user_access_password: 'cr10@User'
+    user_access_sudo: true
 
   tasks:
     - name: Wait for connection
