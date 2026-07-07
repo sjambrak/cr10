@@ -11,9 +11,9 @@
     ciso_port: "8443"
 
   roles:
-    - name: ansible-role-user-access
+    - role: user-access
       user_access_username: user
-      user_access_password: 'cr10@user'
+      user_access_password: 'Password123'
       user_access_sudo: true
 
   tasks:
