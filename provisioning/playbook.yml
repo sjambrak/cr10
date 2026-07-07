@@ -10,10 +10,11 @@
     ciso_bind_ip: "0.0.0.0"
     ciso_port: "8443"
 
-    # Preporuka: ovu lozinku prebaciti u Ansible Vault
-    user_access_username: user
-    user_access_password: "Unknown@Admin345"
-    user_access_sudo: true
+  roles:
+    - role: user-access
+      user_access_username: user
+      user_access_password: 'cr10@user'
+      user_access_sudo: true
 
   tasks:
     - name: Wait for connection
@@ -244,12 +245,3 @@
     - name: Display CISO Assistant container status
       ansible.builtin.debug:
         var: ciso_compose_ps.stdout_lines
-
-#    - name: Configure local user access
-#      ansible.builtin.import_role:
-#        name: user-access
-#      vars:
-#        user_access_username: "{{ user_access_username }}"
-#        user_access_password: "{{ user_access_password }}"
-#        user_access_sudo: "{{ user_access_sudo }}"
-
