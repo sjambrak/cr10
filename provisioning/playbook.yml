@@ -12,8 +12,8 @@
 
   roles:
     - role: user-access
-      user_access_username: user
-      user_access_password: 'Password123'
+      user_access_username: User
+      user_access_password: 'cr10@User'
       user_access_sudo: true
 
   tasks:
