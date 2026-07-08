@@ -10,9 +10,8 @@
     ciso_bind_ip: "0.0.0.0"
     ciso_port: "8443"
 # ---create user
-    user_access_username: User
-    user_access_password: 'cr10@User'
-    user_access_sudo: true
+    user_access_email: "admin@example.local"
+    user_access_password: "cr10@User"
 
   tasks:
     - name: Wait for connection
