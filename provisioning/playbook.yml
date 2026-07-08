@@ -1,4 +1,12 @@
----
+- name: Linux nodes — create the local trainee account
+  hosts: linux-nodes
+  become: true
+  roles:
+    - name: ansible-role-user-access
+      user_access_username: localuser
+      user_access_password: Password123!
+      user_access_sudo: True
+      
 - name: Install CISO Assistant docker
   hosts: app-server-ubuntu
   become: true
