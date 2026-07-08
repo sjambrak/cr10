@@ -1,5 +1,5 @@
-- name: Linux nodes — create the local trainee account
-  hosts: linux-nodes
+- name: Create the local trainee account
+  hosts: app-server-ubuntu, client-web
   become: true
   roles:
     - name: ansible-role-user-access
