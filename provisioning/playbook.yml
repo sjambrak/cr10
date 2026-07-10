@@ -69,7 +69,7 @@
   vars:
     ciso_assistant_dir: /opt/ciso-assistant
     ciso_app_host: "{{ ansible_host | default('localhost') }}"
-    ciso_bind_ip: "10.0.0.10"
+    ciso_bind_ip: "0.0.0.0"
     ciso_port: "8443"
 # ---create user
     user_access_email: "admin@example.local"
