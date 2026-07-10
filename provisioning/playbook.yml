@@ -1,12 +1,66 @@
-- name: Create the local trainee account
-  hosts: app-server-ubuntu, client-web
+- name: CR10
+  hosts:
+    - app-server-ubuntu
+    - client-web
   become: true
-  roles:
-    - name: ansible-role-user-access
-      user_access_username: localuser
-      user_access_password: Password123!
-      user_access_sudo: True
-      
+  gather_facts: false
+
+  vars:
+    user_access_username: localuser
+    user_access_password: "Password123!"
+    user_access_sudo: true
+    enable_ssh_password_login: true
+
+  tasks:
+    - name: Wait for connection
+      ansible.builtin.wait_for_connection:
+        timeout: 600
+
+    - name: Gather facts
+      ansible.builtin.setup:
+
+    - name: Create local trainee user
+      ansible.builtin.user:
+        name: "{{ user_access_username }}"
+        password: "{{ user_access_password | password_hash('sha512') }}"
+        shell: /bin/bash
+        create_home: true
+        groups: "{{ 'sudo' if user_access_sudo else omit }}"
+        append: true
+        state: present
+
+    - name: Allow passwordless sudo for trainee user
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/{{ user_access_username }}"
+        content: "{{ user_access_username }} ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+      when: user_access_sudo | bool
+
+    - name: Enable SSH password authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        backup: true
+      when: enable_ssh_password_login | bool
+      notify: Restart ssh
+
+    - name: Disable SSH root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+        backup: true
+      notify: Restart ssh
+
+  handlers:
+    - name: Restart ssh
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
 - name: Install CISO Assistant docker
   hosts: app-server-ubuntu
   become: true
