@@ -144,7 +144,7 @@
               tmpfs:
                 - /tmp:rw,noexec,nosuid,nodev,size=256m
               environment:
-                ALLOWED_HOSTS: "${ALLOWED_HOSTS:-backend,localhost,127.0.0.1}"
+                ALLOWED_HOSTS: "${ALLOWED_HOSTS:-backend,localhost,127.0.0.1,10.0.0.10}"
                 CISO_ASSISTANT_URL: "https://${APP_HOST:-localhost}:8443"
                 CSRF_TRUSTED_ORIGINS: "https://${APP_HOST:-localhost}:8443"
                 DJANGO_DEBUG: "False"
