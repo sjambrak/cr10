@@ -23,6 +23,8 @@ routers:
 networks:
   - name: network
     cidr: 10.0.0.0/24
+    accessible_by_user: true
+    hidden: false
 wan:
   name: internet-connection
   cidr: 10.10.10.0/24
@@ -37,5 +39,5 @@ router_mappings:
     - router: router
       network: network
       ip: 10.0.0.1
-
-groups: []
+monitoring_targets:
+  - node: app-server-ubuntu
