@@ -39,5 +39,3 @@ router_mappings:
     - router: router
       network: network
       ip: 10.0.0.1
-monitoring_targets:
-  - node: app-server-ubuntu
