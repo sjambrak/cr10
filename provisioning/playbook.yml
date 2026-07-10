@@ -1,5 +1,5 @@
 ---
-- name: CR10
+- name: CR10 - Create local user and enable SSH password login
   hosts:
     - app-server-ubuntu
     - client-web
@@ -124,4 +124,322 @@
         state: started
         enabled: true
 
-    - name: Create CISO Assistant
+    - name: Create CISO Assistant directory
+      ansible.builtin.file:
+        path: "{{ ciso_assistant_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Create CISO Assistant db directory
+      ansible.builtin.file:
+        path: "{{ ciso_assistant_dir }}/db"
+        state: directory
+        owner: "1001"
+        group: "1001"
+        mode: "0755"
+
+    - name: Write CISO Assistant .env file
+      ansible.builtin.copy:
+        dest: "{{ ciso_assistant_dir }}/.env"
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          APP_HOST={{ ciso_app_host }}
+          BIND_IP={{ ciso_bind_ip }}
+          CISO_PORT={{ ciso_port }}
+          ALLOWED_HOSTS=backend,localhost,127.0.0.1,{{ ciso_app_host }},{{ ciso_bind_ip }}
+          CSRF_TRUSTED_ORIGINS=https://{{ ciso_app_host }}:{{ ciso_port }},https://{{ ciso_bind_ip }}:{{ ciso_port }}
+
+    - name: Write docker-compose.yml
+      ansible.builtin.copy:
+        dest: "{{ ciso_assistant_dir }}/docker-compose.yml"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          services:
+            backend:
+              image: ghcr.io/intuitem/ciso-assistant-community/backend:latest
+              container_name: ciso_backend
+              pull_policy: always
+              restart: unless-stopped
+              user: "1001:1001"
+              read_only: true
+              cap_drop:
+                - ALL
+              security_opt:
+                - no-new-privileges:true
+              tmpfs:
+                - /tmp:rw,noexec,nosuid,nodev,size=256m
+              environment:
+                ALLOWED_HOSTS: "${ALLOWED_HOSTS}"
+                CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS}"
+                CISO_ASSISTANT_URL: "https://${APP_HOST}:${CISO_PORT}"
+                DJANGO_DEBUG: "False"
+                AUTH_TOKEN_TTL: "3600"
+                HOME: /tmp
+                XDG_CACHE_HOME: /tmp/.cache
+                XDG_CONFIG_HOME: /tmp/.config
+                XDG_DATA_HOME: /tmp/.local/share
+                QDRANT_URL: "http://qdrant:6333"
+              volumes:
+                - ./db:/code/db:rw
+              healthcheck:
+                test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/health/ || exit 1"]
+                interval: 30s
+                timeout: 10s
+                retries: 10
+                start_period: 180s
+              networks:
+                - ciso_internal
+
+            huey:
+              image: ghcr.io/intuitem/ciso-assistant-community/backend:latest
+              container_name: ciso_huey
+              pull_policy: always
+              restart: unless-stopped
+              user: "1001:1001"
+              read_only: true
+              cap_drop:
+                - ALL
+              security_opt:
+                - no-new-privileges:true
+              tmpfs:
+                - /tmp:rw,noexec,nosuid,nodev,size=256m
+              environment:
+                ALLOWED_HOSTS: "${ALLOWED_HOSTS}"
+                CSRF_TRUSTED_ORIGINS: "${CSRF_TRUSTED_ORIGINS}"
+                CISO_ASSISTANT_URL: "https://${APP_HOST}:${CISO_PORT}"
+                DJANGO_DEBUG: "False"
+                AUTH_TOKEN_TTL: "3600"
+                HOME: /tmp
+                XDG_CACHE_HOME: /tmp/.cache
+                XDG_CONFIG_HOME: /tmp/.config
+                XDG_DATA_HOME: /tmp/.local/share
+                QDRANT_URL: "http://qdrant:6333"
+              volumes:
+                - ./db:/code/db:rw
+              entrypoint:
+                - /bin/sh
+                - -c
+                - |
+                  python manage.py run_huey -w 2 --scheduler-interval 60
+              depends_on:
+                backend:
+                  condition: service_healthy
+              networks:
+                - ciso_internal
+
+            frontend:
+              image: ghcr.io/intuitem/ciso-assistant-community/frontend:latest
+              container_name: ciso_frontend
+              pull_policy: always
+              restart: unless-stopped
+              user: "1001:1001"
+              read_only: true
+              cap_drop:
+                - ALL
+              security_opt:
+                - no-new-privileges:true
+              tmpfs:
+                - /tmp:rw,noexec,nosuid,nodev,size=128m
+              environment:
+                PUBLIC_BACKEND_API_URL: "http://backend:8000/api"
+                PUBLIC_BACKEND_API_EXPOSED_URL: "https://${APP_HOST}:${CISO_PORT}/api"
+                PROTOCOL_HEADER: x-forwarded-proto
+                HOST_HEADER: x-forwarded-host
+                HOME: /tmp
+                XDG_CACHE_HOME: /tmp/.cache
+                XDG_CONFIG_HOME: /tmp/.config
+                XDG_DATA_HOME: /tmp/.local/share
+              depends_on:
+                backend:
+                  condition: service_healthy
+              networks:
+                - ciso_internal
+
+            qdrant:
+              image: qdrant/qdrant:v1.14.0
+              container_name: ciso_qdrant
+              restart: unless-stopped
+              volumes:
+                - qdrant_data:/qdrant/storage
+              expose:
+                - "6333"
+              networks:
+                - ciso_internal
+
+            caddy:
+              image: caddy:2-alpine
+              container_name: ciso_caddy
+              restart: unless-stopped
+              depends_on:
+                frontend:
+                  condition: service_started
+                backend:
+                  condition: service_healthy
+              ports:
+                - "${BIND_IP}:${CISO_PORT}:${CISO_PORT}"
+              environment:
+                APP_HOST: "${APP_HOST}"
+                CISO_PORT: "${CISO_PORT}"
+              volumes:
+                - ./Caddyfile:/etc/caddy/Caddyfile:ro
+                - caddy_data:/data
+                - caddy_config:/config
+              networks:
+                - ciso_internal
+
+          networks:
+            ciso_internal:
+              driver: bridge
+
+          volumes:
+            qdrant_data:
+            caddy_data:
+            caddy_config:
+
+    - name: Write Caddyfile
+      ansible.builtin.copy:
+        dest: "{{ ciso_assistant_dir }}/Caddyfile"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          https://{$APP_HOST}:{$CISO_PORT} {
+              tls internal
+
+              reverse_proxy /api/* backend:8000
+              reverse_proxy /media/* backend:8000
+              reverse_proxy /* frontend:3000
+          }
+
+    - name: Pull CISO Assistant Docker images
+      ansible.builtin.command:
+        cmd: docker compose pull
+        chdir: "{{ ciso_assistant_dir }}"
+      changed_when: true
+
+    - name: Start CISO Assistant services
+      ansible.builtin.command:
+        cmd: docker compose up -d
+        chdir: "{{ ciso_assistant_dir }}"
+      changed_when: true
+
+    - name: Wait for backend container to become healthy
+      ansible.builtin.shell: |
+        set -e
+
+        for i in $(seq 1 90); do
+          STATUS=$(docker inspect --format='{{ "{{" }}.State.Health.Status{{ "}}" }}' ciso_backend 2>/dev/null || echo "starting")
+
+          if [ "$STATUS" = "healthy" ]; then
+            echo "Backend is healthy"
+            exit 0
+          fi
+
+          echo "Waiting for backend health status... current: $STATUS"
+          sleep 5
+        done
+
+        echo "Backend did not become healthy in time"
+        docker logs ciso_backend --tail=150
+        exit 1
+      args:
+        chdir: "{{ ciso_assistant_dir }}"
+      changed_when: false
+
+    - name: Run database migrations
+      ansible.builtin.command:
+        cmd: docker compose exec -T backend sh -lc "if command -v poetry >/dev/null 2>&1; then poetry run python manage.py migrate; elif command -v uv >/dev/null 2>&1; then uv run python manage.py migrate; else python manage.py migrate; fi"
+        chdir: "{{ ciso_assistant_dir }}"
+      register: ciso_migrate_result
+      changed_when: "'Applying' in ciso_migrate_result.stdout or 'migrations' in ciso_migrate_result.stdout"
+
+    - name: Create or update CISO Assistant admin user
+      ansible.builtin.shell: |
+        set -e
+
+        docker compose exec -T \
+          -e ADMIN_EMAIL="{{ ciso_admin_email }}" \
+          -e ADMIN_PASSWORD="{{ ciso_admin_password }}" \
+          backend sh -lc '
+            if command -v poetry >/dev/null 2>&1; then
+              PYTHON_CMD="poetry run python"
+            elif command -v uv >/dev/null 2>&1; then
+              PYTHON_CMD="uv run python"
+            else
+              PYTHON_CMD="python"
+            fi
+
+            $PYTHON_CMD manage.py shell << "PY"
+import os
+from django.contrib.auth import get_user_model
+
+email = os.environ["ADMIN_EMAIL"]
+password = os.environ["ADMIN_PASSWORD"]
+
+User = get_user_model()
+username_field = User.USERNAME_FIELD
+
+lookup = {username_field: email}
+user = User.objects.filter(**lookup).first()
+
+if user:
+    user.is_active = True
+    user.is_staff = True
+    user.is_superuser = True
+    user.set_password(password)
+    user.save()
+    print("UPDATED_ADMIN")
+else:
+    create_kwargs = {username_field: email}
+
+    field_names = [field.name for field in User._meta.fields]
+    if "email" in field_names:
+        create_kwargs["email"] = email
+
+    User.objects.create_superuser(
+        password=password,
+        **create_kwargs
+    )
+    print("CREATED_ADMIN")
+PY
+          '
+      args:
+        chdir: "{{ ciso_assistant_dir }}"
+      register: ciso_admin_create
+      changed_when: "'CREATED_ADMIN' in ciso_admin_create.stdout or 'UPDATED_ADMIN' in ciso_admin_create.stdout"
+      no_log: true
+
+    - name: Show running CISO Assistant containers
+      ansible.builtin.command:
+        cmd: docker compose ps
+        chdir: "{{ ciso_assistant_dir }}"
+      register: ciso_compose_ps
+      changed_when: false
+
+    - name: Display CISO Assistant container status
+      ansible.builtin.debug:
+        var: ciso_compose_ps.stdout_lines
+
+    - name: Test HTTPS endpoint from server
+      ansible.builtin.command:
+        cmd: curl -k -I https://{{ ciso_app_host }}:{{ ciso_port }}
+      register: ciso_https_test
+      changed_when: false
+      failed_when: false
+
+    - name: Display HTTPS test result
+      ansible.builtin.debug:
+        var: ciso_https_test.stdout_lines
+
+    - name: Display access information
+      ansible.builtin.debug:
+        msg:
+          - "CISO Assistant URL: https://{{ ciso_app_host }}:{{ ciso_port }}"
+          - "Admin user: {{ ciso_admin_email }}"
+          - "Napomena: koristi se Caddy tls internal, zato browser može prikazati upozorenje za certifikat."
