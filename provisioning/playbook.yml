@@ -68,7 +68,7 @@
 
   vars:
     ciso_assistant_dir: /opt/ciso-assistant
-    ciso_app_host: "{{ ansible_host | default('localhost') }}"
+    ciso_app_host: "10.0.0.10"
     ciso_bind_ip: "0.0.0.0"
     ciso_port: "8443"
 # ---create user
@@ -119,10 +119,10 @@
         dest: "{{ ciso_assistant_dir }}/.env"
         mode: "0600"
         content: |
-          APP_HOST={{ ciso_app_host }}
-          BIND_IP={{ ciso_bind_ip }}
-          CISO_PORT={{ ciso_port }}
-          ALLOWED_HOSTS=backend,localhost,127.0.0.1,{{ ciso_app_host }}
+          APP_HOST=10.0.0.10
+          BIND_IP=0.0.0.0
+          CISO_PORT=8443
+          ALLOWED_HOSTS=backend,localhost,127.0.0.1,10.0.0.10
 
     - name: Write docker-compose.yml
       ansible.builtin.copy:
