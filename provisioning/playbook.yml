@@ -1,5 +1,5 @@
 ---
-- name: CR10 - Create local user and enable SSH password login
+- name: CR10
   hosts:
     - app-server-ubuntu
     - client-web
