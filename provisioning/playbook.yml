@@ -358,62 +358,7 @@
       register: ciso_migrate_result
       changed_when: "'Applying' in ciso_migrate_result.stdout or 'migrations' in ciso_migrate_result.stdout"
 
-    - name: Create or update CISO Assistant admin user
-      ansible.builtin.shell: |
-        set -e
-
-        docker compose exec -T \
-          -e ADMIN_EMAIL="{{ ciso_admin_email }}" \
-          -e ADMIN_PASSWORD="{{ ciso_admin_password }}" \
-          backend sh -lc '
-            if command -v poetry >/dev/null 2>&1; then
-              PYTHON_CMD="poetry run python"
-            elif command -v uv >/dev/null 2>&1; then
-              PYTHON_CMD="uv run python"
-            else
-              PYTHON_CMD="python"
-            fi
-
-            $PYTHON_CMD manage.py shell << "PY"
-import os
-from django.contrib.auth import get_user_model
-
-email = os.environ["ADMIN_EMAIL"]
-password = os.environ["ADMIN_PASSWORD"]
-
-User = get_user_model()
-username_field = User.USERNAME_FIELD
-
-lookup = {username_field: email}
-user = User.objects.filter(**lookup).first()
-
-if user:
-    user.is_active = True
-    user.is_staff = True
-    user.is_superuser = True
-    user.set_password(password)
-    user.save()
-    print("UPDATED_ADMIN")
-else:
-    create_kwargs = {username_field: email}
-
-    field_names = [field.name for field in User._meta.fields]
-    if "email" in field_names:
-        create_kwargs["email"] = email
-
-    User.objects.create_superuser(
-        password=password,
-        **create_kwargs
-    )
-    print("CREATED_ADMIN")
-PY
-          '
-      args:
-        chdir: "{{ ciso_assistant_dir }}"
-      register: ciso_admin_create
-      changed_when: "'CREATED_ADMIN' in ciso_admin_create.stdout or 'UPDATED_ADMIN' in ciso_admin_create.stdout"
-      no_log: true
-
+    
     - name: Show running CISO Assistant containers
       ansible.builtin.command:
         cmd: docker compose ps
