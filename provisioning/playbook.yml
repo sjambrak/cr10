@@ -308,7 +308,7 @@
         group: root
         mode: "0644"
         content: |
-          https://{$APP_HOST}:{$CISO_PORT} {
+          https://10.0.0.10:8443 {
               tls internal
 
               reverse_proxy /api/* backend:8000
