@@ -1,4 +1,3 @@
----
 - name: CR10
   hosts:
     - app-server-ubuntu
